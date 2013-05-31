@@ -61,18 +61,18 @@
   [{params :query-params}]
   (let [catalog-id-str (:catalog-id params)
         catalog-id (Long/parseLong catalog-id-str)
-        catalog (peer/get-catalog catalog-id)
-        catalog-name (first catalog)]
+        [catalog all-fields] (peer/get-catalog-and-all-fields catalog-id)
+        [catalog-name catalog-fields] catalog]
     (ring-resp/response
      (hiccup/html
       [:p (str "Fields of " catalog-name)]
       [:form {:action "submit-catalog-fields" :method "post"}
-       (for [field (peer/get-fields)]
-         (let [field-id (first field)
-               field-name (second field)]
+       (for [field all-fields]
+         (let [[field-id field-name] field
+               checked (some #(= field-id %1) catalog-fields)]
            [:li
-            [:input {:type "checkbox" :name "field" :value field-id} field-name]]))
-       [:input {:type "hidden" :name "catalog-name" :value catalog-name}]
+            [:input {:type "checkbox" :name "field" :value field-id :checked checked} field-name]]))
+       [:input {:type "hidden" :name "catalog-id" :value catalog-id}]
        [:input {:type "submit"}]]))))
 
 (defn submit-catalog-fields
@@ -80,8 +80,9 @@
   (let [field-field (params "field")
         field-id-strings (if (string? field-field) [field-field] field-field)
         field-ids (map #(Integer/parseInt %1) field-id-strings)
-        catalog-name (params "catalog-name")]
-    (peer/relate-fields catalog-name field-ids)
+        catalog-id-str (params "catalog-id")
+        catalog-id (Long/parseLong catalog-id-str)]
+    (peer/relate-fields catalog-id field-ids)
     (ring-resp/redirect-after-post "/")))
 
 (defroutes routes
