@@ -6,4 +6,11 @@
   :db/fulltext true
   :db/doc "Catalog Name"
   :db.install/_attribute :db.part/db}
+
+  {:db/id #db/id[:db.part/db]
+  :db/ident :catalog/fields
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/doc "Catalog Fields"
+  :db.install/_attribute :db.part/db}
 ]

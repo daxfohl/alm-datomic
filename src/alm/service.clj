@@ -18,7 +18,9 @@
     [:p "Catalogs"
      [:ul
       (for [catalog (peer/get-catalogs)]
-        [:li (first catalog)])]
+        (let [name (first catalog)]
+          [:li [:p name
+                [:a {:href (str "/edit-catalog-fields?catalog-name=" name)} "Edit Fields"]]]))]
      [:a {:href "/new-catalog"} "Create Catalog"]]
     [:p "Fields"
      [:ul
@@ -45,14 +47,37 @@
      [:input {:type "submit"}]])))
 
 (defn add-catalog
-  [{params :params}]
+  [{params :form-params}]
   (peer/add-catalog (params "name"))
   (ring-resp/redirect-after-post "/"))
 
 (defn add-field
-  [{params :params}]
+  [{params :form-params}]
   (peer/add-field (params "name"))
   (ring-resp/redirect-after-post "/"))
+
+(defn edit-catalog-fields
+  [{params :query-params}]
+  (let [catalog-name ( :catalog-name params)]
+    (ring-resp/response
+     (hiccup/html
+      [:p (str "Fields of " catalog-name)]
+      [:form {:action "submit-catalog-fields" :method "post"}
+       (for [field (peer/get-fields)]
+         (let [field-name (first field)]
+           [:li
+            [:input {:type "checkbox" :name "field" :value field-name} field-name]]))
+       [:input {:type "hidden" :name "catalog-name" :value catalog-name}]
+       [:input {:type "submit"}]]))))
+
+(defn submit-catalog-fields
+  [{params :form-params}]
+  (let [field-field (params "field")
+        field-names (if (string? field-field) [field-field] field-field)]
+    (ring-resp/response
+     (hiccup/html
+      (for [field field-names]
+        [:p field])))))
 
 (defroutes routes
   [[["/" {:get home-page}
@@ -62,7 +87,9 @@
      ["/new-catalog" {:get new-catalog}]
      ["/new-field" {:get new-field}]
      ["/add-catalog" {:post add-catalog}]
-     ["/add-field" {:post add-field}]]]])
+     ["/add-field" {:post add-field}]
+     ["/edit-catalog-fields" {:get edit-catalog-fields}]
+     ["/submit-catalog-fields" {:post submit-catalog-fields}]]]])
 
 ;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
 (def url-for (route/url-for-routes routes))
