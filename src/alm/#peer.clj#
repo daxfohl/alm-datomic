@@ -21,11 +21,7 @@
 
 (defn get-fields []
   (let [conn (d/connect uri)]
-    (q '[:find ?e ?name
-         :where
-         [?e :db/ident ?name]
-         [(namespace ?name) ?ns]
-         [(= ?ns "field")]] (d/db conn))))
+    (q all-fields-query (d/db conn))))
 
 (def all-fields-query
   '[:find ?e ?name 
@@ -33,10 +29,6 @@
       [?e :db/ident ?name]
       [(namespace ?name) ?ns]
       [(= ?ns "field")]])
-
-(defn get-fields-for-catalog [catalog-id]
-  (let [conn (d/connect uri)]
-    (q all-fields-query (d/db conn))))
 
 (defn add-catalog [name]
   (let [conn (d/connect uri)]
@@ -53,7 +45,7 @@
 
 (defn relate-fields [catalog-id field-ids]
   (let [conn (d/connect uri)]
-    @(d/transact conn `[{:db/id ~catalog-id :catalog/fields ~field-ids}])))
+    @(d/transact conn `[[:assertWithRetracts ~catalog-id :catalog/fields ~field-ids]])))
 
 (defn get-all-catalogs-with-fields []
   (let [conn (d/connect uri)]
@@ -65,3 +57,5 @@
     [(first (q `[:find ?n (vec ?fs)
                  :where [~catalog-id :catalog/name ?n] [~catalog-id :catalog/fields ?fs]] db))
      (q all-fields-query db)]))
+
+

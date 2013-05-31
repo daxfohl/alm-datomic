@@ -13,4 +13,12 @@
   :db/cardinality :db.cardinality/many
   :db/doc "Catalog Fields"
   :db.install/_attribute :db.part/db}
+  {:db/id #db/id [:db.part/user]
+   :db/ident :assertWithRetracts
+   :db/fn #db/fn 
+     {:lang "clojure"
+      :params [db e a vs]
+      :code "(vals (into (into {} (map (comp #(vector % [:db/retract e a %]) first)
+                                  (datomic.api/q [:find '?v :where [e a '?v]] db)))
+                         (into {} (map #(vector % [:db/add e a %]) vs))))"}}
 ]
