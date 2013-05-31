@@ -18,14 +18,15 @@
     [:p "Catalogs"
      [:ul
       (for [catalog (peer/get-catalogs)]
-        (let [name (first catalog)]
+        (let [id (first catalog)
+              name (second catalog)]
           [:li [:p name
-                [:a {:href (str "/edit-catalog-fields?catalog-name=" name)} "Edit Fields"]]]))]
+                [:a {:href (str "/edit-catalog-fields?catalog-id=" id)} "Edit Fields"]]]))]
      [:a {:href "/new-catalog"} "Create Catalog"]]
     [:p "Fields"
      [:ul
       (for [field (peer/get-fields)]
-        [:li (first field)])]
+        [:li (second field)])]
      [:a {:href "/new-field"} "Create Field"]])))
 
 (defn new-catalog
@@ -58,30 +59,33 @@
 
 (defn edit-catalog-fields
   [{params :query-params}]
-  (let [catalog-name ( :catalog-name params)]
+  (let [catalog-id-str (:catalog-id params)
+        catalog-id (Long/parseLong catalog-id-str)
+        catalog (peer/get-catalog catalog-id)
+        catalog-name (first catalog)]
     (ring-resp/response
      (hiccup/html
       [:p (str "Fields of " catalog-name)]
       [:form {:action "submit-catalog-fields" :method "post"}
        (for [field (peer/get-fields)]
-         (let [field-name (first field)]
+         (let [field-id (first field)
+               field-name (second field)]
            [:li
-            [:input {:type "checkbox" :name "field" :value field-name} field-name]]))
+            [:input {:type "checkbox" :name "field" :value field-id} field-name]]))
        [:input {:type "hidden" :name "catalog-name" :value catalog-name}]
        [:input {:type "submit"}]]))))
 
 (defn submit-catalog-fields
   [{params :form-params}]
   (let [field-field (params "field")
-        field-names (if (string? field-field) [field-field] field-field)]
-    (ring-resp/response
-     (hiccup/html
-      (for [field field-names]
-        [:p field])))))
+        field-id-strings (if (string? field-field) [field-field] field-field)
+        field-ids (map #(Integer/parseInt %1) field-id-strings)
+        catalog-name (params "catalog-name")]
+    (peer/relate-fields catalog-name field-ids)
+    (ring-resp/redirect-after-post "/")))
 
 (defroutes routes
   [[["/" {:get home-page}
-     ;; Set default interceptors for /about and any other paths under /
      ^:interceptors [(body-params/body-params) bootstrap/html-body]
      ["/about" {:get about-page}]
      ["/new-catalog" {:get new-catalog}]

@@ -17,15 +17,15 @@
 (defn get-catalogs []
   (init-db)
   (let [conn (d/connect uri)]
-    (q '[:find ?c :where [?e :catalog/name ?c]] (d/db conn))))
+    (q '[:find ?e ?c :where [?e :catalog/name ?c]] (d/db conn))))
 
 (defn get-fields []
   (let [conn (d/connect uri)]
-    (q '[:find ?f
+    (q '[:find ?e ?f
          :where
          [?e :db/ident ?f]
          [(namespace ?f) ?name]
-         [(.startsWith ^String ?name "")]] (d/db conn))))
+         [(= ?name "field")]] (d/db conn))))
 
 (defn add-catalog [name]
   (let [conn (d/connect uri)]
@@ -47,8 +47,8 @@
 
 (defn get-all-catalogs-with-fields []
   (let [conn (d/connect uri)]
-    (q '[:find ?n (vec ?fs) :where [?e :catalog/name ?n] [?e :catalog/fields ?fs]] (d/db conn))))
+    (q '[:find ?e ?n (vec ?fs) :where [?e :catalog/name ?n] [?e :catalog/fields ?fs]] (d/db conn))))
 
-(defn get-fields-for-catalog [catalog-name]
+(defn get-catalog [catalog-id]
   (let [conn (d/connect uri)]
-    (q `[:find ?fs :where [?e :catalog/name ~catalog-name] [?e :catalog/fields ?fs]] (d/db conn))))
+    (first (q `[:find ?n (vec ?fs) :where [~catalog-id :catalog/name ?n] [~catalog-id :catalog/fields ?fs]] (d/db conn)))))
