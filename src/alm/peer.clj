@@ -46,8 +46,17 @@
 (defn add-part [catalog-id fields]
   (let [conn (d/connect uri)]
     @(d/transact conn [(assoc fields
-                         :db/id #db/id[:db.part/db]
+                         :db/id #db/id[:db.part/user]
                          :part/catalog catalog-id)])))
+
+(defn get-parts [catalog-id]
+  (let [conn (d/connect uri)
+        db (d/db conn)
+        eid-results (q `[:find ?e :where [?e :part/catalog ~catalog-id]] (d/db conn))
+        eids (map first eid-results)
+        entities (map #(d/entity db %1) eids)
+        values (map seq entities)]
+    values))
 
 (defn relate-fields [catalog-id field-ids]
   (let [conn (d/connect uri)]
