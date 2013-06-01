@@ -43,6 +43,12 @@
                         :db/doc (str "A part's " name)
                         :db.install/_attribute :db.part/db}])))
 
+(defn add-part [catalog-id fields]
+  (let [conn (d/connect uri)]
+    @(d/transact conn [(assoc fields
+                         :db/id #db/id[:db.part/db]
+                         :part/catalog catalog-id)])))
+
 (defn relate-fields [catalog-id field-ids]
   (let [conn (d/connect uri)]
     @(d/transact conn `[[:assertWithRetracts ~catalog-id :catalog/fields ~field-ids]])))
