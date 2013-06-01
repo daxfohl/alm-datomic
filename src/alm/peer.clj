@@ -49,13 +49,28 @@
 
 (defn get-all-catalogs-with-fields []
   (let [conn (d/connect uri)]
-    (q '[:find ?e ?n (vec ?fs) :where [?e :catalog/name ?n] [?e :catalog/fields ?fs]] (d/db conn))))
+    (q  '[:find ?e ?n (vec ?result)
+          :where
+          [?e :catalog/name ?n]
+          [?e :catalog/fields ?field]
+          [?field :db/ident ?fieldname]
+          [(vector ?field ?fieldname) ?result]] (d/db conn))))
+
+(def get-catalog-with-fields-query
+  '[:find ?n (vec ?result)
+    :in $ ?e
+    :where
+    [?e :catalog/name ?n]
+    [?e :catalog/fields ?field]
+    [?field :db/ident ?fieldname]
+    [(vector ?field ?fieldname) ?result]])
+
+(defn get-catalog-with-fields [catalog-id]
+  (let [conn (d/connect uri)]
+    (first (q get-catalog-with-fields-query (d/db conn) catalog-id))))
 
 (defn get-catalog-and-all-fields [catalog-id]
   (let [conn (d/connect uri)
         db (d/db conn)]
-    [(first (q `[:find ?n (vec ?fs)
-                 :where [~catalog-id :catalog/name ?n] [~catalog-id :catalog/fields ?fs]] db))
-     (q all-fields-query db)]))
-
+    [(first (q get-catalog-with-fields-query db catalog-id)) (q all-fields-query db)]))
 

@@ -18,16 +18,30 @@
     [:p "Catalogs"
      [:ul
       (for [catalog (peer/get-catalogs)]
-        (let [id (first catalog)
-              name (second catalog)]
+        (let [[id name] catalog]
           [:li [:p name
-                [:a {:href (str "/edit-catalog-fields?catalog-id=" id)} "Edit Fields"]]]))]
+                [:a {:href (str "/edit-catalog-fields?catalog-id=" id)} "Edit Fields"]
+                [:a {:href (str "/view-parts?catalog-id=" id)} "View Parts"]]]))]
      [:a {:href "/new-catalog"} "Create Catalog"]]
     [:p "Fields"
      [:ul
       (for [field (peer/get-fields)]
         [:li (second field)])]
      [:a {:href "/new-field"} "Create Field"]])))
+
+(defn view-parts
+  [{params :query-params}]
+  (let [catalog-id-str (:catalog-id params)
+        catalog-id (Long/parseLong catalog-id-str)
+        [catalog-name fields] (peer/get-catalog-with-fields catalog-id)]
+    (ring-resp/response
+     (hiccup/html
+      [:p catalog-name]
+      [:table
+       [:tr
+        (for [[field-id field-name] fields]
+          [:td field-name])]
+       ]))))
 
 (defn new-catalog
   [request]
@@ -62,14 +76,15 @@
   (let [catalog-id-str (:catalog-id params)
         catalog-id (Long/parseLong catalog-id-str)
         [catalog all-fields] (peer/get-catalog-and-all-fields catalog-id)
-        [catalog-name catalog-fields] catalog]
+        [catalog-name catalog-fields] catalog
+        catalog-field-ids (apply hash-set (map first catalog-fields))]
     (ring-resp/response
      (hiccup/html
       [:p (str "Fields of " catalog-name)]
       [:form {:action "submit-catalog-fields" :method "post"}
        (for [field all-fields]
          (let [[field-id field-name] field
-               checked (some #(= field-id %1) catalog-fields)]
+               checked (contains? catalog-field-ids field-id)]
            [:li
             [:input {:type "checkbox" :name "field" :value field-id :checked checked} field-name]]))
        [:input {:type "hidden" :name "catalog-id" :value catalog-id}]
@@ -94,7 +109,8 @@
      ["/add-catalog" {:post add-catalog}]
      ["/add-field" {:post add-field}]
      ["/edit-catalog-fields" {:get edit-catalog-fields}]
-     ["/submit-catalog-fields" {:post submit-catalog-fields}]]]])
+     ["/submit-catalog-fields" {:post submit-catalog-fields}]
+     ["/view-parts" {:get view-parts}]]]])
 
 ;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
 (def url-for (route/url-for-routes routes))
