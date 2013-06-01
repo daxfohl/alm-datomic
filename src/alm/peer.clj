@@ -49,14 +49,26 @@
                          :db/id #db/id[:db.part/user]
                          :part/catalog catalog-id)])))
 
+(defn update-part [part-id fields]
+  (let [conn (d/connect uri)]
+    @(d/transact conn [(assoc fields
+                         :db/id part-id)])))
+
 (defn get-parts [catalog-id]
   (let [conn (d/connect uri)
         db (d/db conn)
-        eid-results (q `[:find ?e :where [?e :part/catalog ~catalog-id]] (d/db conn))
+        eid-results (q `[:find ?e :where [?e :part/catalog ~catalog-id]] db)
         eids (map first eid-results)
         entities (map #(d/entity db %1) eids)
-        values (map seq entities)]
+        values (map #(cons [:id (:db/id %1)] (seq %1)) entities)]
     (map #(into {} (seq %1)) values)))
+
+(defn get-part [part-id]
+  (let [conn (d/connect uri)
+        db (d/db conn)
+        entity (d/entity db part-id)
+        value (cons [:id (:db/id entity)] (seq entity))]
+    (into {} (seq  value))))
 
 (defn relate-fields [catalog-id field-ids]
   (let [conn (d/connect uri)]

@@ -46,6 +46,25 @@
        [:input {:name "catalog-id" :value catalog-id}]
        [:input {:type "submit"}]]))))
 
+(defn edit-part
+  [{params :query-params}]
+  (let [part-id-str (:part-id params)
+        part-id (Long/parseLong part-id-str)
+        part (peer/get-part part-id)
+        catalog-eid (:part/catalog part)
+        catalog-id (:db/id catalog-eid)
+        [catalog-name fields] (peer/get-catalog-with-fields catalog-id)]
+    (ring-resp/response
+     (hiccup/html
+      [:p catalog-name]
+      [:form {:action "update-part" :method "post"}
+       (for [[field-id field-name] fields]
+         [:p
+          [:td field-name]
+          [:input {:name field-name :value (field-name part)}]])
+       [:input {:name "part-id" :value part-id}]
+       [:input {:type "submit"}]]))))
+
 (defn add-part
   [{params :form-params}]
   (let [field-params (dissoc params "catalog-id")
@@ -53,6 +72,15 @@
         catalog-id (Long/parseLong catalog-id-str)
         field-map (into {} (for [[k v] field-params] [(keyword (str "field/" k)) v]))]
     (peer/add-part catalog-id field-map)
+    (ring-resp/redirect-after-post "/")))
+
+(defn update-part
+  [{params :form-params}]
+  (let [field-params (dissoc params "part-id")
+        part-id-str (params "part-id")
+        part-id (Long/parseLong part-id-str)
+        field-map (into {} (for [[k v] field-params] [(keyword (str "field/" k)) v]))]
+    (peer/update-part part-id field-map)
     (ring-resp/redirect-after-post "/")))
 
 (defn view-parts
@@ -66,11 +94,13 @@
       [:table
        [:tr
         (for [[field-id field-name] fields]
-          [:td field-name])]
+          [:td field-name])
+        [:td "Edit"]]
        (for [part (peer/get-parts catalog-id)]
          [:tr
           (for [[field-id field-name] fields]
-            [:td (field-name part)])])]))))
+            [:td (field-name part)])
+          [:td [:a {:href (str "/edit-part?part-id=" (:id part))} "Edit Part"]]])]))))
 
 (defn new-catalog
   [request]
@@ -142,7 +172,9 @@
      ["/submit-catalog-fields" {:post submit-catalog-fields}]
      ["/view-parts" {:get view-parts}]
      ["/new-part" {:get new-part}]
-    ]]])
+     ["/edit-part" {:get edit-part}]
+     ["/update-part" {:post update-part}]
+     ]]])
 
 ;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
 (def url-for (route/url-for-routes routes))
