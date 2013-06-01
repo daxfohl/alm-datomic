@@ -73,8 +73,9 @@
                  [?e ?a ?v ?tx true]]
                (datomic.api/history db)
                part-id)
-        histories (group-by #(nth %1 3) txns)]
-    (sort histories)))
+        updates (sort (group-by #(nth %1 3) txns))
+        update-maps (map #(vector (first %1) (into {} (for [[id attr val tx] (second %1)] [attr val]))) updates)]
+    (reductions #(vector (first %2) (into (second %1) (second %2)))  update-maps)))
 
 (defn get-part [part-id]
   (let [conn (d/connect uri)

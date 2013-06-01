@@ -124,9 +124,8 @@
        (for [[txid updates] part-histories]
          [:tr
           [:td txid]
-          (let [update-map (into {} (for [[id attr val tx new] updates] [attr val]))]
-            (for [[field-id field-name] fields]
-              [:td (get update-map field-id)]))])]))))
+          (for [[field-id field-name] fields]
+            [:td (get update-map field-id)])])]))))
 
 (defn new-catalog
   [request]
