@@ -67,7 +67,10 @@
        [:tr
         (for [[field-id field-name] fields]
           [:td field-name])]
-       ]))))
+       (for [part (peer/get-parts catalog-id)]
+         [:tr
+          (for [[field-id field-name] fields]
+            [:td (field-name part)])])]))))
 
 (defn new-catalog
   [request]

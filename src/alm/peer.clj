@@ -56,7 +56,7 @@
         eids (map first eid-results)
         entities (map #(d/entity db %1) eids)
         values (map seq entities)]
-    values))
+    (map #(into {} (seq %1)) values)))
 
 (defn relate-fields [catalog-id field-ids]
   (let [conn (d/connect uri)]
