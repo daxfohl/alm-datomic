@@ -63,6 +63,19 @@
         values (map #(cons [:id (:db/id %1)] (seq %1)) entities)]
     (map #(into {} (seq %1)) values)))
 
+(defn get-part-history [part-id]
+  (let [conn (d/connect uri)
+        db (d/db conn)
+        txns  (d/q
+               '[:find ?e ?a ?v ?tx
+                 :in $ ?e
+                 :where
+                 [?e ?a ?v ?tx true]]
+               (datomic.api/history db)
+               part-id)
+        histories (group-by #(nth %1 3) txns)]
+    (sort histories)))
+
 (defn get-part [part-id]
   (let [conn (d/connect uri)
         db (d/db conn)

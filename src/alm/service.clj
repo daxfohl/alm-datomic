@@ -95,12 +95,38 @@
        [:tr
         (for [[field-id field-name] fields]
           [:td field-name])
-        [:td "Edit"]]
+        [:td "Edit"]
+        [:td "History"]]
        (for [part (peer/get-parts catalog-id)]
          [:tr
           (for [[field-id field-name] fields]
             [:td (field-name part)])
-          [:td [:a {:href (str "/edit-part?part-id=" (:id part))} "Edit Part"]]])]))))
+          [:td [:a {:href (str "/edit-part?part-id=" (:id part))} "Edit Part"]]
+          [:td [:a {:href (str "/view-part-history?part-id=" (:id part))} "View History"]]])]))))
+
+(defn view-part-history
+  [{params :query-params}]
+  (let [part-id-str (:part-id params)
+        part-id (Long/parseLong part-id-str)
+        part (peer/get-part part-id)
+        part-histories (peer/get-part-history part-id)
+        catalog-eid (:part/catalog part)
+        catalog-id (:db/id catalog-eid)
+        [catalog-name fields] (peer/get-catalog-with-fields catalog-id)]
+    (ring-resp/response
+     (hiccup/html
+      [:p catalog-name]
+      [:table
+       [:tr
+        [:td "txid"]
+        (for [[field-id field-name] fields]
+          [:td field-name])]
+       (for [[txid updates] part-histories]
+         [:tr
+          [:td txid]
+          (let [update-map (into {} (for [[id attr val tx new] updates] [attr val]))]
+            (for [[field-id field-name] fields]
+              [:td (get update-map field-id)]))])]))))
 
 (defn new-catalog
   [request]
@@ -174,6 +200,7 @@
      ["/new-part" {:get new-part}]
      ["/edit-part" {:get edit-part}]
      ["/update-part" {:post update-part}]
+     ["/view-part-history" {:get view-part-history}]
      ]]])
 
 ;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
